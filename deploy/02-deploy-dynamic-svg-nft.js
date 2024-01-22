@@ -17,16 +17,17 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         ethUsdPriceFeedAddress = networkConfig[chainId].ethUsdPriceFeed
     }
 
+    // set svg form read the file
     const lowSVG = fs.readFileSync("./images/dynamicNft/frown.svg", { encoding: "utf8" })
     const highSVG = fs.readFileSync("./images/dynamicNft/happy.svg", { encoding: "utf8" })
 
     log("----------------------------------------------------")
-    arguments = [ethUsdPriceFeedAddress, lowSVG, highSVG]
+    arguments = [ethUsdPriceFeedAddress, lowSVG, highSVG] // constructor
     const dynamicSvgNft = await deploy("DynamicSvgNft", {
         from: deployer,
         args: arguments,
         log: true,
-        waitConfirmations: network.config.blockConfirmations || 1,
+        waitConfirmations: 1, // network.config.blockConfirmations || 1,
     })
 
     // Verify the deployment

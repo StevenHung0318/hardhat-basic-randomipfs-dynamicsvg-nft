@@ -34,6 +34,12 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     const chainId = network.config.chainId
     let vrfCoordinatorV2Address, subscriptionId, vrfCoordinatorV2Mock
 
+    // get the IPFS hashes of our images
+
+    // 1. With our own IPFS node. https://docs.ipfs.io/
+    // 2. pinata https://www.pinata.cloud/
+    // 3. nft.storage https://nft.storage/
+
     if (process.env.UPLOAD_TO_PINATA == "true") {
         tokenUris = await handleTokenUris()
     }
@@ -66,7 +72,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         from: deployer,
         args: arguments,
         log: true,
-        waitConfirmations: network.config.blockConfirmations || 1,
+        waitConfirmations: 1, // network.config.blockConfirmations || 1,
     })
 
     if (chainId == 31337) {
@@ -84,14 +90,20 @@ async function handleTokenUris() {
     // Check out https://github.com/PatrickAlphaC/nft-mix for a pythonic version of uploading
     // to the raw IPFS-daemon from https://docs.ipfs.io/how-to/command-line-quick-start/
     // You could also look at pinata https://www.pinata.cloud/
+    // https://docs.pinata.cloud/docs/pinata-sdk
     tokenUris = []
+    // store the Image in IPFS
+    // store the matadata in IPFS
     const { responses: imageUploadResponses, files } = await storeImages(imagesLocation)
     for (imageUploadResponseIndex in imageUploadResponses) {
+        // create metadata
+        // upload the metadata
         let tokenUriMetadata = { ...metadataTemplate }
         tokenUriMetadata.name = files[imageUploadResponseIndex].replace(".png", "")
         tokenUriMetadata.description = `An adorable ${tokenUriMetadata.name} pup!`
         tokenUriMetadata.image = `ipfs://${imageUploadResponses[imageUploadResponseIndex].IpfsHash}`
         console.log(`Uploading ${tokenUriMetadata.name}...`)
+        // store the JSON to pinata / IPFS
         const metadataUploadResponse = await storeTokenUriMetadata(tokenUriMetadata)
         tokenUris.push(`ipfs://${metadataUploadResponse.IpfsHash}`)
     }

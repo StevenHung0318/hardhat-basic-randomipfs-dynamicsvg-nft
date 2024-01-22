@@ -3,14 +3,17 @@ const fs = require("fs")
 const path = require("path")
 require("dotenv").config()
 
+// https://docs.pinata.cloud/docs/pinata-sdk
+
 const pinataApiKey = process.env.PINATA_API_KEY || ""
 const pinataApiSecret = process.env.PINATA_API_SECRET || ""
 const pinata = new pinataSDK(pinataApiKey, pinataApiSecret)
 
 async function storeImages(imagesFilePath) {
+    // get the path of images that we want to upload to pinata
     const fullImagesPath = path.resolve(imagesFilePath)
 
-    // Filter the files in case the are a file that in not a .png
+    // Filter the files in case they are a file that in not a .png
     const files = fs.readdirSync(fullImagesPath).filter((file) => file.includes(".png"))
 
     let responses = []

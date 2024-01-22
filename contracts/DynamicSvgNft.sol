@@ -10,18 +10,21 @@ import "hardhat/console.sol";
 error ERC721Metadata__URI_QueryFor_NonExistentToken();
 
 contract DynamicSvgNft is ERC721, Ownable {
+    // mint
+    // store our SVG information somewhere
+    // Some logic to say "Show X Image" or "Show Y Image"
     uint256 private s_tokenCounter;
     string private s_lowImageURI;
     string private s_highImageURI;
 
-    mapping(uint256 => int256) private s_tokenIdToHighValues;
+    mapping(uint256 => int256) public s_tokenIdToHighValues;
     AggregatorV3Interface internal immutable i_priceFeed;
     event CreatedNFT(uint256 indexed tokenId, int256 highValue);
 
     constructor(
-        address priceFeedAddress,
-        string memory lowSvg,
-        string memory highSvg
+        address priceFeedAddress, // from arg of 03-deploy-random-ipfs-nft.js
+        string memory lowSvg, // from arg of 03-deploy-random-ipfs-nft.js
+        string memory highSvg // from arg of 03-deploy-random-ipfs-nft.js
     ) ERC721("Dynamic SVG NFT", "DSN") {
         s_tokenCounter = 0;
         i_priceFeed = AggregatorV3Interface(priceFeedAddress);
@@ -49,6 +52,7 @@ contract DynamicSvgNft is ERC721, Ownable {
     //     setHighURI(svgURI);
     // }
 
+    // minter can choose the highValue
     function mintNft(int256 highValue) public {
         s_tokenIdToHighValues[s_tokenCounter] = highValue;
         _safeMint(msg.sender, s_tokenCounter);
@@ -62,6 +66,7 @@ contract DynamicSvgNft is ERC721, Ownable {
         // '<svg width="500" height="500" viewBox="0 0 285 350" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="black" d="M150,0,L75,200,L225,200,Z"></path></svg>'
         // would return ""
         string memory baseURL = "data:image/svg+xml;base64,";
+        // About abi.encodePacked -> https://docs.soliditylang.org/en/latest/cheatsheet.html#global-variables
         string memory svgBase64Encoded = Base64.encode(bytes(string(abi.encodePacked(svg))));
         return string(abi.encodePacked(baseURL, svgBase64Encoded));
     }
@@ -70,21 +75,26 @@ contract DynamicSvgNft is ERC721, Ownable {
         return "data:application/json;base64,";
     }
 
+    // override from ERC721
     function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
         if (!_exists(tokenId)) {
             revert ERC721Metadata__URI_QueryFor_NonExistentToken();
         }
         (, int256 price, , , ) = i_priceFeed.latestRoundData();
+        int256 priceConverter = price * 10 ** 10;
         string memory imageURI = s_lowImageURI;
-        if (price >= s_tokenIdToHighValues[tokenId]) {
+        if (priceConverter >= s_tokenIdToHighValues[tokenId]) {
             imageURI = s_highImageURI;
         }
+        // data:image/svg+xml;base64,
+        // data:application/json;base64,
         return
             string(
                 abi.encodePacked(
-                    _baseURI(),
+                    _baseURI(), // prefix
                     Base64.encode(
                         bytes(
+                            // json
                             abi.encodePacked(
                                 '{"name":"',
                                 name(), // You can add whatever name here
@@ -112,6 +122,12 @@ contract DynamicSvgNft is ERC721, Ownable {
     }
 
     function getTokenCounter() public view returns (uint256) {
-        return s_tokenCounter;
+        return (s_tokenCounter / 10 ** 18);
+    }
+
+    function getlatestPrice() public view returns (int256) {
+        (, int256 price, , , ) = i_priceFeed.latestRoundData();
+        int256 priceConverToETH = price / 10 ** 8;
+        return priceConverToETH;
     }
 }
